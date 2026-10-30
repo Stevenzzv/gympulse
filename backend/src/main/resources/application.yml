@@ -1,0 +1,70 @@
+server:
+  port: ${PORT:8080} # hosting platforms like Render set PORT
+
+spring:
+  application:
+    name: gymsaas
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/gymsaas;MODE=PostgreSQL;AUTO_SERVER=TRUE}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+app:
+  jwt:
+    # Override JWT_SECRET in every real environment (min 32 chars).
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-0123456789abcdef}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  # Accounts with these emails get the ADMIN role (approve payments, manage customers).
+  admin-emails: ${ADMIN_EMAILS:admin@gymsaas.app}
+  subscription:
+    trial-days: ${TRIAL_DAYS:14}
+    currency: USD
+    plans:
+      - code: MONTHLY
+        name: Mensual
+        months: 1
+        price: ${PLAN_MONTHLY_PRICE:29.00}
+        paypal-link: ${PAYPAL_LINK_MONTHLY:}
+      - code: QUARTERLY
+        name: Trimestral
+        months: 3
+        price: ${PLAN_QUARTERLY_PRICE:79.00}
+        paypal-link: ${PAYPAL_LINK_QUARTERLY:}
+      - code: YEARLY
+        name: Anual
+        months: 12
+        price: ${PLAN_YEARLY_PRICE:290.00}
+        paypal-link: ${PAYPAL_LINK_YEARLY:}
+  manual-payment:
+    bank-name: ${BANK_NAME:Banco Pichincha}
+    account-type: ${BANK_ACCOUNT_TYPE:Ahorros}
+    account-number: ${BANK_ACCOUNT_NUMBER:0000000000}
+    account-holder: ${BANK_ACCOUNT_HOLDER:Nombre del titular}
+    holder-id: ${BANK_HOLDER_ID:}
+    deuna-phone: ${DEUNA_PHONE:}
+    # Public URL of your DeUna QR image (or put the file in frontend/public and use /deuna-qr.png).
+    deuna-qr-url: ${DEUNA_QR_URL:}
+    whatsapp: ${SUPPORT_WHATSAPP:}
+    contact-email: ${SUPPORT_EMAIL:}
+  paypal:
+    mode: ${PAYPAL_MODE:sandbox}
+    client-id: ${PAYPAL_CLIENT_ID:}
+    client-secret: ${PAYPAL_CLIENT_SECRET:}
+    webhook-id: ${PAYPAL_WEBHOOK_ID:}
+    # Dev only: lets the "Simulate payment" button activate a subscription without paying.
+    simulation-enabled: ${PAYPAL_SIMULATION_ENABLED:true}
+  seed-demo: ${SEED_DEMO:true}

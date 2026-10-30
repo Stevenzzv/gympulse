@@ -1,0 +1,45 @@
+# Render Blueprint: Render -> New -> Blueprint -> pick this repository.
+# You'll be asked for every value marked "sync: false".
+services:
+  - type: web
+    name: gympulse
+    runtime: docker
+    plan: free           # for testing; it sleeps after 15 min idle. Switch to "starter" for real customers
+    healthCheckPath: /api/public/pricing
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_URL
+        sync: false      # jdbc:postgresql://HOST/DBNAME?sslmode=require
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false      # https://your-domain (same origin, but keep it set)
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: PLAN_MONTHLY_PRICE
+        value: "29.00"
+      - key: PLAN_QUARTERLY_PRICE
+        value: "79.00"
+      - key: PLAN_YEARLY_PRICE
+        value: "290.00"
+      - key: BANK_NAME
+        sync: false
+      - key: BANK_ACCOUNT_TYPE
+        sync: false
+      - key: BANK_ACCOUNT_NUMBER
+        sync: false
+      - key: BANK_ACCOUNT_HOLDER
+        sync: false
+      - key: BANK_HOLDER_ID
+        sync: false
+      - key: DEUNA_PHONE
+        sync: false
+      - key: SUPPORT_WHATSAPP
+        sync: false
+      - key: PAYPAL_LINK_MONTHLY
+        sync: false
+      - key: PAYPAL_LINK_YEARLY
+        sync: false
