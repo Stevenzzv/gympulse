@@ -45,7 +45,8 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
         return props;
     }
 
+    /** Percent-decoding only: in a URL's user info "+" is a literal plus, not a space. */
     private static String decode(String s) {
-        return URLDecoder.decode(s, StandardCharsets.UTF_8);
+        return URLDecoder.decode(s.replace("+", "%2B"), StandardCharsets.UTF_8);
     }
 }

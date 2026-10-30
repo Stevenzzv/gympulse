@@ -28,6 +28,12 @@ class DatabaseUrlEnvironmentPostProcessorTest {
     }
 
     @Test
+    void keepsPlusSignsInPasswords() {
+        var p = DatabaseUrlEnvironmentPostProcessor.normalize("postgresql://u:a+b%2Bc@host/db");
+        assertThat(p).containsEntry("spring.datasource.password", "a+b+c");
+    }
+
+    @Test
     void leavesJdbcUrlsWithoutCredentialsAlone() {
         assertThat(DatabaseUrlEnvironmentPostProcessor.normalize("jdbc:postgresql://host:5432/db"))
                 .containsOnlyKeys("spring.datasource.url")
