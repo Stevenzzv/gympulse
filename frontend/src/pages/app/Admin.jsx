@@ -37,7 +37,7 @@ export default function Admin() {
 
   return (
     <>
-      <PageHeader title="Pagos y clientes" subtitle="Aprueba transferencias y DeUna, y controla las suscripciones de tus clientes." />
+      <PageHeader eyebrow="Administración" title="Pagos y clientes" subtitle="Aprueba transferencias y DeUna, y controla las suscripciones de tus clientes." />
       {summary && (
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
           <Tile label="Pagos por revisar" value={summary.pendingPayments} warn={summary.pendingPayments > 0} />
@@ -47,10 +47,10 @@ export default function Admin() {
           <Tile label="Cobrado últimos 30 días" value={money(summary.revenueLast30Days)} />
         </div>
       )}
-      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
+      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {tabs.map(([key, label]) => (
           <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)}
-                  className={`whitespace-nowrap px-4 py-2 text-sm font-semibold ${tab === key ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`whitespace-nowrap px-4 py-2 text-sm font-semibold ${tab === key ? 'border-b-2 border-brand-400 text-brand-200' : 'text-subtle hover:text-fg'}`}>
             {label}
           </button>
         ))}
@@ -64,9 +64,9 @@ export default function Admin() {
 
 function Tile({ label, value, warn }) {
   return (
-    <div className={`card p-4 ${warn ? 'border-amber-300 bg-amber-50' : ''}`}>
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{value}</p>
+    <div className={`card p-4 ${warn ? 'border-amber-400/40 bg-amber-400/5' : ''}`}>
+      <p className="text-xs font-medium text-muted">{label}</p>
+      <p className="mt-1 num text-2xl font-semibold tracking-tight text-fg">{value}</p>
     </div>
   )
 }
@@ -114,38 +114,38 @@ function PendingCard({ item: { payment: p, user }, onDone }) {
     <div className="card p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:justify-between">
         <div className="space-y-1">
-          <p className="text-lg font-semibold text-slate-900">{user.fullName}</p>
-          <p className="text-sm text-slate-500">{user.email}</p>
+          <p className="font-display text-lg font-semibold text-fg">{user.fullName}</p>
+          <p className="text-sm text-muted">{user.email}</p>
           {wa && (
-            <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:underline">
+            <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-emerald-300 hover:underline">
               <MessageCircle className="h-4 w-4" /> {user.phone}
             </a>
           )}
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-          <div><dt className="text-xs text-slate-500">Monto</dt><dd className="font-semibold text-slate-900">{money(p.amount)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Método</dt><dd>{methodLabel(p.method)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Plan</dt><dd>{monthsLabel(p.months)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Enviado</dt><dd>{dateTime(p.createdAt)}</dd></div>
-          <div className="col-span-2 sm:col-span-4"><dt className="text-xs text-slate-500">Comprobante</dt>
+          <div><dt className="text-xs text-muted">Monto</dt><dd className="font-semibold text-fg">{money(p.amount)}</dd></div>
+          <div><dt className="text-xs text-muted">Método</dt><dd>{methodLabel(p.method)}</dd></div>
+          <div><dt className="text-xs text-muted">Plan</dt><dd>{monthsLabel(p.months)}</dd></div>
+          <div><dt className="text-xs text-muted">Enviado</dt><dd>{dateTime(p.createdAt)}</dd></div>
+          <div className="col-span-2 sm:col-span-4"><dt className="text-xs text-muted">Comprobante</dt>
             <dd className="flex flex-wrap items-center gap-3">
               <span className="break-all font-mono">{p.reference || 'sin número'}</span>
               {p.hasReceipt && (
                 <button onClick={() => openProtectedFile(receiptPath(p.id)).catch((e) => setError(errorMessage(e)))}
-                        className="inline-flex items-center gap-1 font-medium text-brand-600 hover:underline">
+                        className="inline-flex items-center gap-1 font-medium text-brand-300 hover:underline">
                   <FileText className="h-4 w-4" /> Ver archivo
                 </button>
               )}
             </dd>
           </div>
-          {p.payerNote && <div className="col-span-2 sm:col-span-4"><dt className="text-xs text-slate-500">Nota del cliente</dt><dd>{p.payerNote}</dd></div>}
-          {p.adminNote && <div className="col-span-2 sm:col-span-4"><dt className="text-xs text-slate-500">Aviso del sistema</dt><dd className="text-amber-700">{p.adminNote}</dd></div>}
+          {p.payerNote && <div className="col-span-2 sm:col-span-4"><dt className="text-xs text-muted">Nota del cliente</dt><dd>{p.payerNote}</dd></div>}
+          {p.adminNote && <div className="col-span-2 sm:col-span-4"><dt className="text-xs text-muted">Aviso del sistema</dt><dd className="text-amber-300">{p.adminNote}</dd></div>}
         </dl>
       </div>
-      <p className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+      <p className="mt-4 rounded-lg bg-surface-2 p-3 text-xs text-muted">
         Antes de aprobar, confirma en tu banco o en DeUna que el dinero llegó y que la referencia coincide.
       </p>
-      <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-end">
+      <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-end">
         <Field label="Meses a activar" className="sm:w-36">
           <input type="number" min="1" max="36" className="input" value={months} onChange={(e) => setMonths(e.target.value)} />
         </Field>
@@ -154,7 +154,7 @@ function PendingCard({ item: { payment: p, user }, onDone }) {
         </Field>
         <div className="flex gap-2">
           <Button variant="danger" loading={busy === 'reject'} disabled={!!busy} onClick={() => act('reject')}><XCircle className="h-4 w-4" /> Rechazar</Button>
-          <Button loading={busy === 'approve'} disabled={!!busy} onClick={() => act('approve')} className="bg-emerald-600 hover:bg-emerald-700"><CheckCircle2 className="h-4 w-4" /> Aprobar</Button>
+          <Button loading={busy === 'approve'} disabled={!!busy} onClick={() => act('approve')} className="bg-emerald-400 text-ink hover:bg-emerald-300 shadow-none"><CheckCircle2 className="h-4 w-4" /> Aprobar</Button>
         </div>
       </div>
       {error && <div className="mt-3"><Alert>{error}</Alert></div>}
@@ -202,13 +202,13 @@ function Customers({ onChange }) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-subtle" />
           <input className="input pl-9" placeholder="Buscar por nombre, email o teléfono…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <div className="flex flex-wrap gap-1">
           {FILTERS.map(([k, l]) => (
             <button key={k} onClick={() => setFilter(k)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium ${filter === k ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-300 hover:bg-slate-50'}`}>
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium ${filter === k ? 'bg-brand-400 text-ink' : 'bg-surface text-muted ring-1 ring-line-strong hover:bg-surface-2'}`}>
               {l}
             </button>
           ))}
@@ -216,10 +216,10 @@ function Customers({ onChange }) {
       </div>
 
       <div className="card overflow-hidden">
-        {visible.length === 0 ? <p className="p-8 text-center text-sm text-slate-500">No hay clientes con este filtro.</p> : (
+        {visible.length === 0 ? <p className="p-8 text-center text-sm text-muted">No hay clientes con este filtro.</p> : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-line">
+              <thead className="bg-surface-2">
                 <tr>
                   <th className="th">Cliente</th>
                   <th className="th">Estado</th>
@@ -229,7 +229,7 @@ function Customers({ onChange }) {
                   <th className="th"><span className="sr-only">Acciones</span></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line">
                 {visible.map((u) => {
                   const st = u.hasActiveAccess ? SUBSCRIPTION_STATUS[u.subscriptionStatus] : SUBSCRIPTION_STATUS.EXPIRED
                   const d = daysUntil(u.accessEndsAt)
@@ -238,12 +238,12 @@ function Customers({ onChange }) {
                     : `Hola ${u.fullName}, tu suscripción de GymPulse está vencida. Tus datos siguen guardados; renueva para seguir registrando.`
                   const wa = whatsappLink(u.phone, reminder)
                   return (
-                    <tr key={u.id} className="hover:bg-slate-50">
+                    <tr key={u.id} className="hover:bg-surface-2">
                       <td className="td">
-                        <p className="font-medium text-slate-900">{u.fullName}</p>
-                        <p className="text-xs text-slate-500">{u.email}</p>
+                        <p className="font-medium text-fg">{u.fullName}</p>
+                        <p className="text-xs text-muted">{u.email}</p>
                         {wa && (
-                          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline">
+                          <a href={wa} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-emerald-300 hover:underline">
                             <MessageCircle className="h-3.5 w-3.5" /> {u.phone}
                           </a>
                         )}
@@ -251,7 +251,7 @@ function Customers({ onChange }) {
                       <td className="td"><Badge tone={st.tone}>{st.label}</Badge></td>
                       <td className="td whitespace-nowrap">
                         {date(u.accessEndsAt)}
-                        {u.hasActiveAccess && d != null && d <= 7 && <span className="block text-xs font-medium text-amber-700">{d <= 0 ? 'vence hoy' : `en ${d} días`}</span>}
+                        {u.hasActiveAccess && d != null && d <= 7 && <span className="block text-xs font-medium text-amber-300">{d <= 0 ? 'vence hoy' : `en ${d} días`}</span>}
                       </td>
                       <td className="td">{u.gymCount}</td>
                       <td className="td whitespace-nowrap">{date(u.lastPaymentAt)}</td>
@@ -300,7 +300,7 @@ function ActivateForm({ customer, onSaved, onCancel }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-muted">
         Para pagos recibidos fuera de la app (efectivo, transferencia que viste en tu banco…). Se suman los meses a la
         suscripción de <b>{customer.fullName}</b>.
       </p>

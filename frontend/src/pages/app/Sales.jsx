@@ -3,8 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { Plus, Receipt, Trash2 } from 'lucide-react'
 import { api, errorMessage } from '../../lib/api'
 import { useGym } from '../../context/GymContext'
-import { dateTime, methodLabel, money, todayISO } from '../../lib/format'
-import { Alert, Badge, Button, EmptyState, Field, Modal, PageHeader, Pagination, Spinner } from '../../components/ui'
+import { addDays, dateTime, methodLabel, money, todayISO } from '../../lib/format'
+import { Alert, Avatar, Badge, Button, Drawer, EmptyState, Field, PageHeader, Pagination, Segmented, Spinner, useToast } from '../../components/ui'
 import RequireGym from '../../components/RequireGym'
 import SaleForm from '../../components/SaleForm'
 
@@ -12,23 +12,44 @@ export default function Sales() {
   return <RequireGym><SalesContent /></RequireGym>
 }
 
-const firstOfMonth = () => todayISO().slice(0, 8) + '01'
+/** Date range for each preset, as [from, to] in YYYY-MM-DD. */
+function presetRange(preset) {
+  const today = todayISO()
+  const first = today.slice(0, 8) + '01'
+  if (preset === 'today') return [today, today]
+  if (preset === '7d') return [addDays(today, -6), today]
+  if (preset === 'lastMonth') {
+    const lastDay = addDays(first, -1)
+    return [lastDay.slice(0, 8) + '01', lastDay]
+  }
+  return [first, today] // this month
+}
 
 function SalesContent() {
   const { gym } = useGym()
+  const toast = useToast()
   const [params, setParams] = useSearchParams()
-  const [from, setFrom] = useState(firstOfMonth())
-  const [to, setTo] = useState(todayISO())
+  const [preset, setPreset] = useState('month')
+  const [[from, to], setRange] = useState(presetRange('month'))
   const [page, setPage] = useState(0)
   const [data, setData] = useState(null)
+  const [summary, setSummary] = useState(null)
   const [error, setError] = useState('')
   const creating = params.get('new') === '1'
   const setCreating = (v) => setParams(v ? { new: '1' } : {})
 
+  const choosePreset = (p) => {
+    setPreset(p)
+    if (p !== 'custom') setRange(presetRange(p))
+    setPage(0)
+  }
+
   const load = useCallback(() => {
-    api.get(`/gyms/${gym.id}/sales`, { params: { from: from || undefined, to: to || undefined, page, size: 20 } })
-      .then(({ data }) => setData(data))
-      .catch((e) => setError(errorMessage(e)))
+    const range = { from: from || undefined, to: to || undefined }
+    api.get(`/gyms/${gym.id}/sales`, { params: { ...range, page, size: 20 } })
+      .then(({ data }) => setData(data)).catch((e) => setError(errorMessage(e)))
+    api.get(`/gyms/${gym.id}/sales/summary`, { params: range })
+      .then(({ data }) => setSummary(data)).catch(() => {})
   }, [gym.id, from, to, page])
 
   useEffect(() => { load() }, [load])
@@ -37,66 +58,83 @@ function SalesContent() {
     if (!confirm(`¿Eliminar la venta "${s.concept}" de ${money(s.amount)}?`)) return
     try {
       await api.delete(`/gyms/${gym.id}/sales/${s.id}`)
+      toast('Venta eliminada')
       load()
     } catch (e) { setError(errorMessage(e)) }
   }
 
-  const pageTotal = data?.content.reduce((sum, s) => sum + Number(s.amount), 0) ?? 0
-
   return (
     <>
       <PageHeader
+        eyebrow={gym.name}
         title="Ventas"
-        subtitle="Cada membresía, producto y servicio que vendes."
+        subtitle="Membresías, productos y servicios cobrados."
         actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Nueva venta</Button>}
       />
-      <div className="space-y-4">
+
+      <div className="space-y-5">
         <Alert>{error}</Alert>
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label="Desde"><input type="date" className="input" value={from} onChange={(e) => { setFrom(e.target.value); setPage(0) }} /></Field>
-          <Field label="Hasta"><input type="date" className="input" value={to} onChange={(e) => { setTo(e.target.value); setPage(0) }} /></Field>
-          {data && (
-            <p className="ml-auto text-sm text-slate-600">
-              <span className="font-semibold text-slate-900">{data.totalElements}</span> ventas en el rango
-              {data.totalPages > 1 ? <> · en esta página <span className="font-semibold text-slate-900">{money(pageTotal)}</span></>
-                : <> · total <span className="font-semibold text-slate-900">{money(pageTotal)}</span></>}
-            </p>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="overflow-x-auto">
+            <Segmented label="Periodo" value={preset} onChange={choosePreset} options={[
+              { value: 'today', label: 'Hoy' }, { value: '7d', label: '7 días' }, { value: 'month', label: 'Este mes' },
+              { value: 'lastMonth', label: 'Mes pasado' }, { value: 'custom', label: 'Elegir fechas' },
+            ]} />
+          </div>
+          {preset === 'custom' && (
+            <div className="flex gap-3">
+              <Field label="Desde"><input type="date" className="input" value={from} onChange={(e) => { setRange([e.target.value, to]); setPage(0) }} /></Field>
+              <Field label="Hasta"><input type="date" className="input" value={to} onChange={(e) => { setRange([from, e.target.value]); setPage(0) }} /></Field>
+            </div>
           )}
         </div>
 
+        {summary && (
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="Total cobrado" value={money(summary.total)} accent />
+            <Stat label="Ventas" value={summary.count} />
+            <Stat label="Ticket promedio" value={money(summary.averageTicket)} />
+          </div>
+        )}
+
         <div className="card overflow-hidden">
           {!data ? <Spinner /> : data.content.length === 0 ? (
-            <EmptyState icon={Receipt} title="No hay ventas en este periodo" text="Registra una venta o amplía el rango de fechas."
-                        action={<Button onClick={() => setCreating(true)}>Nueva venta</Button>} />
+            <EmptyState icon={Receipt} title="Sin ventas en este periodo" text="Registra una venta o elige otro periodo."
+                        action={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Nueva venta</Button>} />
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50">
+                <table className="min-w-full">
+                  <thead className="border-b border-line">
                     <tr>
-                      <th className="th">Fecha</th>
                       <th className="th">Concepto</th>
-                      <th className="th">Socio</th>
-                      <th className="th">Método</th>
+                      <th className="th hidden md:table-cell">Socio</th>
+                      <th className="th hidden sm:table-cell">Método</th>
                       <th className="th text-right">Monto</th>
                       <th className="th"><span className="sr-only">Acciones</span></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-line">
                     {data.content.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50">
-                        <td className="td whitespace-nowrap text-slate-500">{dateTime(s.soldAt)}</td>
+                      <tr key={s.id} className="transition hover:bg-surface-2/60">
                         <td className="td">
-                          <span className="font-medium text-slate-900">{s.concept}</span>
-                          {s.planId && <span className="ml-2"><Badge tone="brand">Plan</Badge></span>}
-                          {s.notes && <p className="text-xs text-slate-500">{s.notes}</p>}
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-fg">{s.concept}</span>
+                            {s.planId && <Badge tone="brand">Plan</Badge>}
+                          </div>
+                          <p className="num text-xs text-subtle">{dateTime(s.soldAt)}</p>
+                          {s.notes && <p className="text-xs text-muted">{s.notes}</p>}
                         </td>
-                        <td className="td">{s.memberName || <span className="text-slate-400">Ocasional</span>}</td>
-                        <td className="td">{methodLabel(s.paymentMethod)}</td>
-                        <td className="td text-right font-semibold text-slate-900">{money(s.amount)}</td>
+                        <td className="td hidden md:table-cell">
+                          {s.memberName
+                            ? <span className="flex items-center gap-2"><Avatar name={s.memberName} size="sm" />{s.memberName}</span>
+                            : <span className="text-subtle">Cliente ocasional</span>}
+                        </td>
+                        <td className="td hidden sm:table-cell text-muted">{methodLabel(s.paymentMethod)}</td>
+                        <td className="td num text-right text-base font-semibold text-fg">{money(s.amount)}</td>
                         <td className="td text-right">
                           <button onClick={() => remove(s)} aria-label="Eliminar venta" title="Eliminar"
-                                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600">
+                                  className="rounded-lg p-2 text-subtle hover:bg-surface-3 hover:text-rose-300">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </td>
@@ -111,12 +149,21 @@ function SalesContent() {
         </div>
       </div>
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="Registrar venta">
+      <Drawer open={creating} onClose={() => setCreating(false)} title="Nueva venta" subtitle="Membresía o producto, en segundos">
         {creating && (
           <SaleForm gymId={gym.id} onCancel={() => setCreating(false)}
-                    onSaved={() => { setCreating(false); setTo(todayISO()); load() }} />
+                    onSaved={(s) => { setCreating(false); toast(`Venta registrada: ${s.concept} · ${money(s.amount)}`); load() }} />
         )}
-      </Modal>
+      </Drawer>
     </>
+  )
+}
+
+function Stat({ label, value, accent }) {
+  return (
+    <div className={`card px-4 py-3 ${accent ? 'border-brand-400/40' : ''}`}>
+      <p className="hud-label">{label}</p>
+      <p className={`num mt-1 truncate text-xl font-semibold sm:text-2xl ${accent ? 'text-brand-200' : 'text-fg'}`}>{value}</p>
+    </div>
   )
 }

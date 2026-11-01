@@ -30,4 +30,10 @@ public final class AuthDtos {
     }
 
     public record AuthResponse(String token, UserResponse user) {}
+
+    public record ChangePasswordRequest(
+            @NotBlank String currentPassword,
+            @NotBlank @Size(min = 8, max = 100, message = "debe tener al menos 8 caracteres") String newPassword) {}
+
+    public record ProfileRequest(@NotBlank @Size(max = 120) String fullName, @Size(max = 30) String phone) {}
 }

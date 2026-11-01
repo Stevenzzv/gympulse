@@ -32,8 +32,8 @@ export default function Register() {
   return (
     <AuthCard
       title="Crea tu cuenta"
-      subtitle="Prueba gratis, sin tarjeta de crédito."
-      footer={<>¿Ya tienes cuenta? <Link to="/login" className="font-semibold text-brand-600">Ingresa</Link></>}
+      subtitle="7 días gratis con todas las funciones. Sin tarjeta."
+      footer={<>¿Ya tienes cuenta? <Link to="/login" className="font-semibold text-brand-300 hover:text-brand-200">Ingresa</Link></>}
     >
       <form onSubmit={submit} className="space-y-4">
         <Alert>{error}</Alert>
@@ -53,7 +53,11 @@ export default function Register() {
           <input className="input" type="password" required minLength={8} autoComplete="new-password"
                  value={form.password} onChange={set('password')} />
         </Field>
-        <Button type="submit" loading={busy} className="w-full">Crear cuenta</Button>
+        <Button type="submit" size="lg" loading={busy} className="w-full">Empezar 7 días gratis</Button>
+        <p className="text-center text-xs text-subtle">
+          Al crear tu cuenta aceptas los <Link to="/terminos" className="text-muted underline underline-offset-2 hover:text-fg">Términos</Link> y
+          la <Link to="/privacidad" className="text-muted underline underline-offset-2 hover:text-fg">Política de privacidad</Link>.
+        </p>
       </form>
     </AuthCard>
   )

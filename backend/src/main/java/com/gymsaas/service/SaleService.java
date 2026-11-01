@@ -5,6 +5,7 @@ import com.gymsaas.repository.SaleRepository;
 import com.gymsaas.web.ApiException;
 import com.gymsaas.web.dto.GymDtos.SaleRequest;
 import com.gymsaas.web.dto.GymDtos.SaleResponse;
+import com.gymsaas.web.dto.GymDtos.SalesSummary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -39,6 +40,17 @@ public class SaleService {
         var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100),
                 Sort.by(Sort.Direction.DESC, "soldAt"));
         return sales.findInRange(gymId, start, end, pageable).map(SaleResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public SalesSummary summary(Long ownerId, Long gymId, LocalDate from, LocalDate to) {
+        gymService.requireOwned(ownerId, gymId);
+        LocalDateTime start = (from == null ? LocalDate.of(1970, 1, 1) : from).atStartOfDay();
+        LocalDateTime end = (to == null ? LocalDate.now().plusYears(100) : to).plusDays(1).atStartOfDay();
+        BigDecimal total = sales.sumInRange(gymId, start, end);
+        long count = sales.countInRange(gymId, start, end);
+        BigDecimal avg = count == 0 ? BigDecimal.ZERO : total.divide(BigDecimal.valueOf(count), 2, java.math.RoundingMode.HALF_UP);
+        return new SalesSummary(total, count, avg);
     }
 
     /**

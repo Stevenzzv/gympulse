@@ -67,7 +67,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         u.setEmail(DEMO_EMAIL);
         u.setPassword(encoder.encode(DEMO_PASSWORD));
         u.setSubscriptionStatus(SubscriptionStatus.TRIAL);
-        u.setTrialEndsAt(Instant.now().plus(Duration.ofDays(14)));
+        u.setTrialEndsAt(Instant.now().plus(Duration.ofDays(7)));
         users.save(u);
 
         Gym gym = new Gym();
@@ -195,7 +195,7 @@ public class DemoDataSeeder implements ApplicationRunner {
         u.setEmail(email);
         u.setPassword(encoder.encode(password));
         u.setPhone(phone);
-        u.setTrialEndsAt(Instant.now().plus(Duration.ofDays(14)));
+        u.setTrialEndsAt(Instant.now().plus(Duration.ofDays(7)));
         return users.save(u);
     }
 }

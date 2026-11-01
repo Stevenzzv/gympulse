@@ -130,6 +130,13 @@ public class GymController {
         return sales.list(me.id(), gymId, from, to, page, size);
     }
 
+    @GetMapping("/{gymId}/sales/summary")
+    public SalesSummary salesSummary(@AuthenticationPrincipal AuthUser me, @PathVariable Long gymId,
+                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return sales.summary(me.id(), gymId, from, to);
+    }
+
     @PostMapping("/{gymId}/sales")
     @ResponseStatus(HttpStatus.CREATED)
     public SaleResponse createSale(@AuthenticationPrincipal AuthUser me, @PathVariable Long gymId,

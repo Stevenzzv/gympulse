@@ -72,6 +72,8 @@ public final class GymDtos {
                               LocalDateTime soldAt,
                               @Size(max = 2000) String notes) {}
 
+    public record SalesSummary(BigDecimal total, long count, BigDecimal averageTicket) {}
+
     public record SaleResponse(Long id, Long memberId, String memberName, Long planId, String planName,
                                String concept, BigDecimal amount, PaymentMethod paymentMethod,
                                LocalDateTime soldAt, String notes) {

@@ -13,7 +13,7 @@ export default function RequireGym({ children }) {
         icon={Building2}
         title="Crea tu primer gimnasio"
         text="Agrega un gimnasio para empezar a registrar socios, planes y ventas."
-        action={<Link to="/app/gyms" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Agregar gimnasio</Link>}
+        action={<Link to="/app/gyms" className="rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-semibold text-ink shadow-glow hover:bg-brand-300">Agregar gimnasio</Link>}
       />
     </div>
   )

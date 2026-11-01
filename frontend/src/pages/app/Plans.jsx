@@ -32,6 +32,7 @@ function PlansContent() {
   return (
     <>
       <PageHeader
+        eyebrow="Catálogo"
         title="Planes"
         subtitle="Las membresías que vendes: precio y duración."
         actions={<Button onClick={() => setEditing({})}><Plus className="h-4 w-4" /> Nuevo plan</Button>}
@@ -47,12 +48,12 @@ function PlansContent() {
           {plans.map((p) => (
             <div key={p.id} className={`card flex flex-col p-5 ${p.active ? '' : 'opacity-60'}`}>
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-slate-900">{p.name}</h3>
+                <h3 className="font-semibold text-fg">{p.name}</h3>
                 {!p.active && <Badge>Inactivo</Badge>}
               </div>
-              <p className="mt-3 text-3xl font-bold tracking-tight">{money(p.price)}</p>
-              <p className="text-sm text-slate-500">{p.durationDays} {p.durationDays === 1 ? 'día' : 'días'}</p>
-              {p.description && <p className="mt-3 text-sm text-slate-600">{p.description}</p>}
+              <p className="mt-3 num text-3xl font-semibold tracking-tight">{money(p.price)}</p>
+              <p className="text-sm text-muted">{p.durationDays} {p.durationDays === 1 ? 'día' : 'días'}</p>
+              {p.description && <p className="mt-3 text-sm text-muted">{p.description}</p>}
               <div className="mt-auto flex gap-2 pt-5">
                 <Button variant="secondary" className="flex-1" onClick={() => setEditing(p)}><Pencil className="h-4 w-4" /> Editar</Button>
                 <Button variant="ghost" onClick={() => remove(p)} aria-label="Eliminar plan"><Trash2 className="h-4 w-4" /></Button>
@@ -102,8 +103,8 @@ function PlanForm({ gymId, plan, onSaved, onCancel }) {
         <Field label="Duración (días)"><input className="input" type="number" min="1" required value={form.durationDays} onChange={set('durationDays')} /></Field>
       </div>
       <Field label="Descripción"><textarea className="input" rows={2} value={form.description} onChange={set('description')} /></Field>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-brand-600" checked={form.active}
+      <label className="flex items-center gap-2 text-sm text-fg/90">
+        <input type="checkbox" className="h-4 w-4 rounded border-line-strong text-brand-300" checked={form.active}
                onChange={(e) => setForm({ ...form, active: e.target.checked })} />
         Disponible para nuevas ventas
       </label>

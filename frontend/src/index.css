@@ -1,17 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer components {
-  .input {
-    @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm
-      placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
-      disabled:bg-slate-100;
+@layer base {
+  html { color-scheme: dark; }
+  body {
+    @apply bg-ink font-sans text-fg antialiased;
+    /* Faint blueprint grid + a cool glow at the top: the "control panel" backdrop */
+    background-image:
+      radial-gradient(1200px 500px at 50% -200px, rgba(34, 200, 245, .10), transparent 70%),
+      linear-gradient(rgba(120, 160, 255, .035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 160, 255, .035) 1px, transparent 1px);
+    background-size: 100% 100%, 44px 44px, 44px 44px;
+    background-attachment: fixed;
   }
-  .label { @apply mb-1 block text-sm font-medium text-slate-700; }
-  .card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
-  .th { @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
-  .td { @apply px-4 py-3 text-sm text-slate-700; }
+  ::selection { background: rgba(34, 200, 245, .35); }
+  h1, h2, h3 { text-wrap: balance; }
+  select option { background: #111a2e; color: #e8ecf8; }
+  input[type='date']::-webkit-calendar-picker-indicator { filter: invert(.8); cursor: pointer; }
+  :focus-visible { outline: 2px solid #22c8f5; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+}
+
+@layer components {
+  .card { @apply rounded-2xl border border-line bg-surface/85 shadow-panel backdrop-blur; }
+  .input {
+    @apply block w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm text-fg
+      placeholder:text-subtle transition
+      focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-400/15
+      disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-[.08em] text-muted; }
+  .th { @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[.12em] text-subtle; }
+  .td { @apply px-4 py-3.5 text-sm text-fg/90; }
+  .num { @apply font-mono tabular-nums; }
+  .hud-label { @apply font-mono text-[11px] uppercase tracking-[.16em] text-subtle; }
+  .gradient-text { @apply bg-gradient-to-r from-brand-300 via-brand-400 to-violet-400 bg-clip-text text-transparent; }
 }

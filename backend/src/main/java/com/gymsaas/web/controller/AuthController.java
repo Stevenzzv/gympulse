@@ -30,6 +30,19 @@ public class AuthController {
         return auth.login(req);
     }
 
+    @PostMapping("/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@AuthenticationPrincipal AuthUser me, @Valid @RequestBody ChangePasswordRequest req) {
+        if (me == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "No has iniciado sesión");
+        auth.changePassword(me.id(), req);
+    }
+
+    @PutMapping("/me")
+    public UserResponse updateProfile(@AuthenticationPrincipal AuthUser me, @Valid @RequestBody ProfileRequest req) {
+        if (me == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "No has iniciado sesión");
+        return auth.updateProfile(me.id(), req);
+    }
+
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal AuthUser me) {
         if (me == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "No has iniciado sesión");

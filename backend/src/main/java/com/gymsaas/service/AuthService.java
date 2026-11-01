@@ -71,6 +71,23 @@ public class AuthService {
         return new AuthResponse(jwt.issue(u), UserResponse.from(u));
     }
 
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest req) {
+        User u = get(userId);
+        if (!encoder.matches(req.currentPassword(), u.getPassword())) {
+            throw ApiException.badRequest("La contraseña actual no es correcta");
+        }
+        u.setPassword(encoder.encode(req.newPassword()));
+    }
+
+    @Transactional
+    public UserResponse updateProfile(Long userId, ProfileRequest req) {
+        User u = get(userId);
+        u.setFullName(req.fullName().trim());
+        u.setPhone(req.phone() == null || req.phone().isBlank() ? null : req.phone().trim());
+        return UserResponse.from(u);
+    }
+
     public User get(Long userId) {
         return users.findById(userId).orElseThrow(() -> ApiException.notFound("Usuario no encontrado"));
     }

@@ -21,6 +21,7 @@ export default function Gyms() {
   return (
     <>
       <PageHeader
+        eyebrow="Sucursales"
         title="Gimnasios"
         subtitle="Tus sucursales. Cada una tiene sus propios socios, planes, ventas y estadísticas."
         actions={<Button onClick={() => setEditing({})}><Plus className="h-4 w-4" /> Agregar gimnasio</Button>}
@@ -36,11 +37,11 @@ export default function Gyms() {
           {gyms.map((g) => (
             <div key={g.id} className="card p-5">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-slate-900">{g.name}</h3>
+                <h3 className="font-semibold text-fg">{g.name}</h3>
                 {g.id === gymId && <Badge tone="brand">Seleccionado</Badge>}
               </div>
-              <p className="mt-3 flex items-center gap-2 text-sm text-slate-600"><MapPin className="h-4 w-4 text-slate-400" />{g.address || '—'}</p>
-              <p className="mt-1 flex items-center gap-2 text-sm text-slate-600"><Phone className="h-4 w-4 text-slate-400" />{g.phone || '—'}</p>
+              <p className="mt-3 flex items-center gap-2 text-sm text-muted"><MapPin className="h-4 w-4 text-subtle" />{g.address || '—'}</p>
+              <p className="mt-1 flex items-center gap-2 text-sm text-muted"><Phone className="h-4 w-4 text-subtle" />{g.phone || '—'}</p>
               <div className="mt-5 flex gap-2">
                 {g.id !== gymId && <Button variant="secondary" className="flex-1" onClick={() => setGymId(g.id)}>Seleccionar</Button>}
                 <Button variant="secondary" className="flex-1" onClick={() => setEditing(g)}><Pencil className="h-4 w-4" /> Editar</Button>

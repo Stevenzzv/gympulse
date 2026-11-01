@@ -12,7 +12,7 @@ Los dueños de gimnasios se registran con una prueba gratis y luego pagan la sus
 ## Funciones
 
 - **Landing** en español con funciones, los 3 planes (mensual, trimestral, anual), formas de pago y preguntas frecuentes.
-- **Registro e ingreso** con JWT y contraseñas cifradas (BCrypt). Al registrarse empieza la prueba gratis (14 días por defecto).
+- **Registro e ingreso** con JWT y contraseñas cifradas (BCrypt). Al registrarse empieza la prueba gratis (7 días por defecto). En *Mi cuenta* cada usuario cambia sus datos y su contraseña.
   Se pide el WhatsApp (opcional) para avisar renovaciones.
 - **Varias sucursales**: cada dueño ve solo sus gimnasios.
 - **Socios**: datos de contacto, cédula, fecha de nacimiento, plan, estado, vencimiento y **observaciones** (lesiones, objetivos…).
@@ -71,7 +71,7 @@ cd backend && mvn test
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | H2 en archivo | ej. `jdbc:postgresql://host:5432/gympulse` |
 | `CORS_ORIGINS` | `http://localhost:5173` | Dominio(s) del frontend, separados por coma |
 | `ADMIN_EMAILS` | `admin@gymsaas.app` (vacío en prod) | Emails con rol ADMIN, separados por coma. Regístrate con ese email y al reiniciar quedas como admin |
-| `TRIAL_DAYS` | `14` | Días de prueba gratis |
+| `TRIAL_DAYS` | `7` | Días de prueba gratis |
 | `PLAN_MONTHLY_PRICE` / `PLAN_QUARTERLY_PRICE` / `PLAN_YEARLY_PRICE` | `29.00` / `79.00` / `290.00` | Precios en USD |
 | `BANK_NAME`, `BANK_ACCOUNT_TYPE`, `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_HOLDER`, `BANK_HOLDER_ID` | datos de ejemplo | Tu cuenta para transferencias (`BANK_HOLDER_ID` = cédula o RUC) |
 | `DEUNA_PHONE` | vacío | Tu número de DeUna |
@@ -94,18 +94,32 @@ El `Dockerfile` de la raíz arma **una sola imagen** con la web (React) y la API
 sirve todo, así que no hace falta configurar `VITE_API_URL` ni CORS aparte.
 
 1. **Sube el proyecto a GitHub** (repositorio privado).
-2. **Base de datos**: crea un PostgreSQL gratuito en [Neon](https://neon.tech) (o Supabase). De la cadena de conexión
-   saca host, base, usuario y contraseña. `DB_URL` queda así: `jdbc:postgresql://HOST/BASE?sslmode=require`.
+2. **Base de datos**: crea un PostgreSQL en [Neon](https://neon.tech) y copia su *connection string*
+   (`postgresql://usuario:clave@host/base?sslmode=require`). Pégala tal cual en `DB_URL`.
 3. **Servidor**: en [Render](https://render.com) → *New* → *Blueprint* → elige tu repositorio. Render lee
-   `render.yaml` y te pide las variables (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `ADMIN_EMAILS`, datos bancarios…).
-   `JWT_SECRET` se genera solo. `render.yaml` usa el plan **gratis** para probar: se "duerme" tras 15 minutos sin uso
-   y tarda ~1 minuto en despertar. Para clientes reales cambia `plan: free` por `plan: starter`.
-4. Abre la URL que te da Render (`https://gympulse-xxxx.onrender.com`), **regístrate con el email de `ADMIN_EMAILS`**
-   y ya tienes el panel de administración.
-5. **Dominio propio** (opcional): en Render → *Settings* → *Custom Domains*, agrega `tudominio.com` y crea en tu
-   proveedor de dominio el registro DNS que te indique. El HTTPS es automático. Luego pon `CORS_ORIGINS=https://tudominio.com`.
+   `render.yaml` (plan `starter`, de pago y siempre encendido) y te pide las variables. `JWT_SECRET` se genera solo.
+   Para solo probar gratis, cambia `plan: starter` por `plan: free` (se "duerme" tras 15 minutos sin uso).
+4. Abre la URL que te da Render, **regístrate con el email de `ADMIN_EMAILS`** y ya tienes el panel de administración.
 
 Cada `git push` a la rama principal vuelve a desplegar. Las tablas se crean solas al arrancar.
+
+## Lista para lanzar (dominio, hosting y legal)
+
+1. **Hosting**: en Render, el plan *Starter* del servicio web (siempre encendido). Revisa en Neon que tu plan de base
+   de datos cubra el uso esperado y activa las copias de seguridad.
+2. **Dominio**: cómpralo en Cloudflare, Namecheap o un registrador `.ec`. En Render → tu servicio → *Settings* →
+   *Custom Domains* agrega `tudominio.com` y `www.tudominio.com`, y crea en tu proveedor los registros DNS exactos que
+   Render te muestre. Render emite el certificado HTTPS solo.
+3. Cuando el dominio funcione, pon `CORS_ORIGINS=https://tudominio.com` en las variables de Render.
+4. **Legal**: completa los datos entre `[corchetes]` (razón social, RUC, ciudad, correo) al inicio de
+   `frontend/src/pages/Legal.jsx`. Esas páginas son `/terminos` y `/privacidad`, enlazadas en el registro y el pie
+   de página. Haz que un abogado las revise; en Ecuador aplica la Ley Orgánica de Protección de Datos Personales.
+5. **Datos de cobro reales**: `BANK_*`, `DEUNA_PHONE` o `DEUNA_QR_URL`, `SUPPORT_WHATSAPP` y, si usarás PayPal,
+   los enlaces y credenciales (ver abajo).
+6. **Facturación**: emite la factura electrónica del SRI por cada pago aprobado, con tu sistema de facturación.
+
+Pendiente para más adelante: recuperar contraseña por email ("Olvidé mi contraseña"), que necesita un servicio de
+envío de correos (por ejemplo, Resend o SendGrid).
 
 ## Cómo cobrar
 
@@ -139,12 +153,14 @@ Todo requiere `Authorization: Bearer <token>` excepto auth, precios públicos y 
 
 ```
 POST /api/auth/register            POST /api/auth/login            GET /api/auth/me
+PUT  /api/auth/me                    POST /api/auth/password
 GET  /api/public/pricing
 GET|POST /api/gyms                 PUT|DELETE /api/gyms/{gymId}
 GET|POST /api/gyms/{gymId}/plans   PUT|DELETE /api/gyms/{gymId}/plans/{id}
 GET|POST /api/gyms/{gymId}/members?q=&status=&page=&size=
 GET|PUT|DELETE /api/gyms/{gymId}/members/{id}
 GET|POST /api/gyms/{gymId}/sales?from=&to=&page=&size=     DELETE /api/gyms/{gymId}/sales/{id}
+GET  /api/gyms/{gymId}/sales/summary?from=&to=
 GET  /api/gyms/{gymId}/stats?months=12
 
 GET  /api/billing                               POST /api/billing/manual-payments (multipart)
@@ -168,8 +184,10 @@ backend/src/main/java/com/gymsaas
   service/      lógica (socios, ventas, estadísticas, cobros, administración)
   web/          controladores REST, DTOs, manejo de errores
 frontend/src
-  pages/        Landing, Login, Register, app/ (Panel, Socios, Ventas, Planes, Gimnasios, Suscripción, Admin)
-  components/   layout, componentes de UI, formulario de venta, historial de pagos
+  pages/        Landing, Login, Register, Legal, NotFound, app/ (Panel, Socios, Ventas, Planes, Gimnasios,
+                Suscripción, Mi cuenta, Admin)
+  components/   layout, componentes de UI (panel lateral, avisos, chips), formularios de socio y de venta,
+                selector de planes, historial de pagos
   context/      sesión y gimnasio seleccionado
   lib/          cliente de la API y formatos (es-EC, USD)
 ```

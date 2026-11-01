@@ -32,7 +32,7 @@ export default function Login() {
     <AuthCard
       title="Bienvenido de nuevo"
       subtitle="Ingresa para administrar tu gimnasio."
-      footer={<>¿Aún no tienes cuenta? <Link to="/register" className="font-semibold text-brand-600">Prueba gratis</Link></>}
+      footer={<>¿Aún no tienes cuenta? <Link to="/register" className="font-semibold text-brand-300 hover:text-brand-200">Prueba gratis</Link></>}
     >
       <form onSubmit={submit} className="space-y-4">
         <Alert>{error}</Alert>
@@ -44,8 +44,8 @@ export default function Login() {
           <input className="input" type="password" autoComplete="current-password" required value={form.password}
                  onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </Field>
-        <Button type="submit" loading={busy} className="w-full">Ingresar</Button>
-        <button type="button" className="w-full text-center text-xs text-slate-500 hover:text-brand-600"
+        <Button type="submit" size="lg" loading={busy} className="w-full">Ingresar</Button>
+        <button type="button" className="w-full text-center text-xs text-subtle hover:text-brand-300"
                 onClick={() => setForm({ email: 'demo@gymsaas.app', password: 'demo1234' })}>
           Usar la cuenta demo
         </button>

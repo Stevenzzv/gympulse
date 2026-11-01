@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Pencil, Plus, Receipt, Search, Trash2, Users } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Pencil, Plus, Receipt, Search, Trash2, UserPlus, Users } from 'lucide-react'
 import { api, errorMessage } from '../../lib/api'
 import { useGym } from '../../context/GymContext'
-import { date, daysUntil, todayISO } from '../../lib/format'
-import { Alert, Badge, Button, EmptyState, Field, Modal, PageHeader, Pagination, Spinner } from '../../components/ui'
+import { date, daysUntil, whatsappLink } from '../../lib/format'
+import { Alert, Avatar, Badge, Button, Drawer, EmptyState, PageHeader, Pagination, Segmented, Spinner, useToast } from '../../components/ui'
 import RequireGym from '../../components/RequireGym'
+import MemberForm from '../../components/MemberForm'
 import SaleForm from '../../components/SaleForm'
 
 export default function Members() {
@@ -13,14 +15,16 @@ export default function Members() {
 
 function MembersContent() {
   const { gym } = useGym()
+  const toast = useToast()
+  const [params, setParams] = useSearchParams()
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(0)
   const [data, setData] = useState(null)
+  const [counts, setCounts] = useState(null)
   const [error, setError] = useState('')
-  const [editing, setEditing] = useState(null) // null | {} (new) | member
+  const [editing, setEditing] = useState(params.get('new') === '1' ? {} : null) // null | {} (new) | member
   const [selling, setSelling] = useState(null)
-  const [notice, setNotice] = useState('')
 
   const load = useCallback(() => {
     api.get(`/gyms/${gym.id}/members`, { params: { q, status: status || undefined, page, size: 15 } })
@@ -28,80 +32,112 @@ function MembersContent() {
       .catch((e) => setError(errorMessage(e)))
   }, [gym.id, q, status, page])
 
+  const loadCounts = useCallback(() => {
+    api.get(`/gyms/${gym.id}/stats`, { params: { months: 1 } }).then(({ data }) => setCounts(data)).catch(() => {})
+  }, [gym.id])
+
   useEffect(() => {
-    const t = setTimeout(load, 250)
+    const t = setTimeout(load, 200)
     return () => clearTimeout(t)
   }, [load])
+  useEffect(() => { loadCounts() }, [loadCounts])
+
+  const closeEditor = () => {
+    setEditing(null)
+    if (params.get('new')) setParams({})
+  }
+  const afterChange = (message) => {
+    toast(message)
+    load()
+    loadCounts()
+  }
 
   const remove = async (m) => {
     if (!confirm(`¿Eliminar a ${m.firstName} ${m.lastName}? Sus ventas se mantienen en tu historial.`)) return
     try {
       await api.delete(`/gyms/${gym.id}/members/${m.id}`)
-      load()
+      afterChange('Socio eliminado')
     } catch (e) { setError(errorMessage(e)) }
   }
 
   return (
     <>
       <PageHeader
+        eyebrow={gym.name}
         title="Socios"
-        subtitle="Todos los inscritos en tu gimnasio, con su plan y observaciones."
-        actions={<Button onClick={() => setEditing({})}><Plus className="h-4 w-4" /> Nuevo socio</Button>}
+        subtitle="Inscribe socios, cobra sus planes y guarda sus observaciones."
+        actions={<Button onClick={() => setEditing({})}><UserPlus className="h-4 w-4" /> Nuevo socio</Button>}
       />
+
+      {counts && (
+        <div className="mb-6 grid grid-cols-3 gap-3">
+          <Counter label="Registrados" value={counts.totalMembers} />
+          <Counter label="Con plan vigente" value={counts.membersWithValidPlan} tone="text-emerald-300" />
+          <Counter label="Vencen en 7 días" value={counts.expiringNext7Days} tone={counts.expiringNext7Days ? 'text-amber-300' : undefined} />
+        </div>
+      )}
+
       <div className="space-y-4">
         <Alert>{error}</Alert>
-        <Alert tone="success">{notice}</Alert>
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <input className="input pl-9" placeholder="Buscar por nombre, email, teléfono o cédula…" value={q}
+            <Search className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-subtle" />
+            <input className="input pl-10" placeholder="Buscar por nombre, teléfono, email o cédula…" value={q}
                    onChange={(e) => { setQ(e.target.value); setPage(0) }} />
           </div>
-          <select className="input sm:w-44" value={status} onChange={(e) => { setStatus(e.target.value); setPage(0) }}>
-            <option value="">Todos los estados</option>
-            <option value="ACTIVE">Activos</option>
-            <option value="INACTIVE">Inactivos</option>
-          </select>
+          <Segmented label="Estado" value={status} onChange={(v) => { setStatus(v); setPage(0) }}
+            options={[{ value: '', label: 'Todos' }, { value: 'ACTIVE', label: 'Activos' }, { value: 'INACTIVE', label: 'Inactivos' }]} />
         </div>
 
         <div className="card overflow-hidden">
           {!data ? <Spinner /> : data.content.length === 0 ? (
-            <EmptyState icon={Users} title="No se encontraron socios" text={q ? 'Prueba con otra búsqueda.' : 'Registra a tu primer socio.'} />
+            <EmptyState icon={Users} title={q ? 'No se encontraron socios' : 'Aún no hay socios'}
+              text={q ? 'Prueba con otra búsqueda.' : 'Inscribe a tu primer socio; puedes cobrarle el plan en el mismo paso.'}
+              action={!q && <Button onClick={() => setEditing({})}><Plus className="h-4 w-4" /> Nuevo socio</Button>} />
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50">
+                <table className="min-w-full">
+                  <thead className="border-b border-line">
                     <tr>
                       <th className="th">Socio</th>
-                      <th className="th">Plan</th>
+                      <th className="th hidden sm:table-cell">Plan</th>
                       <th className="th">Membresía</th>
-                      <th className="th hidden md:table-cell">Observaciones</th>
-                      <th className="th text-right">Acciones</th>
+                      <th className="th hidden lg:table-cell">Observaciones</th>
+                      <th className="th"><span className="sr-only">Acciones</span></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {data.content.map((m) => (
-                      <tr key={m.id} className="hover:bg-slate-50">
-                        <td className="td">
-                          <p className="font-medium text-slate-900">{m.firstName} {m.lastName}</p>
-                          <p className="text-xs text-slate-500">{m.email || m.phone || '—'}</p>
-                          {m.status === 'INACTIVE' && <Badge>Inactivo</Badge>}
-                        </td>
-                        <td className="td">{m.planName || <span className="text-slate-400">—</span>}</td>
-                        <td className="td"><MembershipBadge endsAt={m.membershipEndsAt} /></td>
-                        <td className="td hidden max-w-xs truncate text-slate-500 md:table-cell" title={m.observations || ''}>
-                          {m.observations || '—'}
-                        </td>
-                        <td className="td">
-                          <div className="flex justify-end gap-1">
-                            <IconBtn label="Registrar venta / renovar" onClick={() => setSelling(m)}><Receipt className="h-4 w-4" /></IconBtn>
-                            <IconBtn label="Editar" onClick={() => setEditing(m)}><Pencil className="h-4 w-4" /></IconBtn>
-                            <IconBtn label="Eliminar" onClick={() => remove(m)} danger><Trash2 className="h-4 w-4" /></IconBtn>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                  <tbody className="divide-y divide-line">
+                    {data.content.map((m) => {
+                      const full = `${m.firstName} ${m.lastName}`
+                      const wa = whatsappLink(m.phone)
+                      return (
+                        <tr key={m.id} className="transition hover:bg-surface-2/60">
+                          <td className="td">
+                            <button onClick={() => setEditing(m)} className="flex items-center gap-3 text-left">
+                              <Avatar name={full} size="sm" />
+                              <span className="min-w-0">
+                                <span className="block font-semibold text-fg hover:text-brand-200">{full}</span>
+                                <span className="block text-xs text-subtle">
+                                  {wa ? <a href={wa} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="hover:text-emerald-300">{m.phone}</a> : m.email || 'Sin contacto'}
+                                  {m.status === 'INACTIVE' && <span className="ml-2 text-rose-300">· Inactivo</span>}
+                                </span>
+                              </span>
+                            </button>
+                          </td>
+                          <td className="td hidden sm:table-cell">{m.planName || <span className="text-subtle">—</span>}</td>
+                          <td className="td"><MembershipBadge endsAt={m.membershipEndsAt} /></td>
+                          <td className="td hidden max-w-xs truncate text-muted lg:table-cell" title={m.observations || ''}>{m.observations || <span className="text-subtle">—</span>}</td>
+                          <td className="td">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="secondary" size="sm" onClick={() => setSelling(m)}><Receipt className="h-3.5 w-3.5" /> Cobrar</Button>
+                              <IconBtn label="Editar" onClick={() => setEditing(m)}><Pencil className="h-4 w-4" /></IconBtn>
+                              <IconBtn label="Eliminar" onClick={() => remove(m)} danger><Trash2 className="h-4 w-4" /></IconBtn>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -111,27 +147,32 @@ function MembersContent() {
         </div>
       </div>
 
-      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? 'Editar socio' : 'Nuevo socio'} wide>
-        {editing && (
-          <MemberForm gymId={gym.id} member={editing} onCancel={() => setEditing(null)}
-                      onSaved={() => { setEditing(null); load() }} />
-        )}
-      </Modal>
+      <Drawer open={!!editing} onClose={closeEditor} title={editing?.id ? 'Editar socio' : 'Nuevo socio'}
+              subtitle={editing?.id ? `${editing.firstName} ${editing.lastName}` : 'Datos, plan y cobro en un solo paso'}>
+        {editing && <MemberForm gymId={gym.id} member={editing} onCancel={closeEditor} onSaved={(_, msg) => { closeEditor(); afterChange(msg) }} />}
+      </Drawer>
 
-      <Modal open={!!selling} onClose={() => setSelling(null)} title="Registrar venta">
-        {selling && (
-          <SaleForm gymId={gym.id} member={selling} onCancel={() => setSelling(null)}
-                    onSaved={(s) => { setSelling(null); setNotice(`Venta registrada: ${s.concept}`); load() }} />
-        )}
-      </Modal>
+      <Drawer open={!!selling} onClose={() => setSelling(null)} title="Cobrar o renovar" subtitle={selling ? `${selling.firstName} ${selling.lastName}` : ''}>
+        {selling && <SaleForm gymId={gym.id} member={selling} onCancel={() => setSelling(null)}
+                              onSaved={(s) => { setSelling(null); afterChange(`Venta registrada: ${s.concept}`) }} />}
+      </Drawer>
     </>
+  )
+}
+
+function Counter({ label, value, tone = 'text-fg' }) {
+  return (
+    <div className="card px-4 py-3">
+      <p className="hud-label">{label}</p>
+      <p className={`num mt-1 text-2xl font-semibold ${tone}`}>{value}</p>
+    </div>
   )
 }
 
 function IconBtn({ label, onClick, danger, children }) {
   return (
     <button title={label} aria-label={label} onClick={onClick}
-            className={`rounded-lg p-2 text-slate-500 hover:bg-slate-100 ${danger ? 'hover:text-red-600' : 'hover:text-brand-600'}`}>
+            className={`rounded-lg p-2 text-subtle transition hover:bg-surface-3 ${danger ? 'hover:text-rose-300' : 'hover:text-brand-200'}`}>
       {children}
     </button>
   )
@@ -140,81 +181,7 @@ function IconBtn({ label, onClick, danger, children }) {
 function MembershipBadge({ endsAt }) {
   if (!endsAt) return <Badge>Sin plan</Badge>
   const days = daysUntil(endsAt)
-  if (days < 0) return <Badge tone="red">Venció {date(endsAt)}</Badge>
-  if (days <= 7) return <Badge tone="amber">{days === 0 ? 'Vence hoy' : `Vence en ${days} días`}</Badge>
-  return <Badge tone="green">Hasta {date(endsAt)}</Badge>
-}
-
-function MemberForm({ gymId, member, onSaved, onCancel }) {
-  const [plans, setPlans] = useState([])
-  const [form, setForm] = useState({
-    firstName: member.firstName || '', lastName: member.lastName || '', email: member.email || '',
-    phone: member.phone || '', documentId: member.documentId || '', birthDate: member.birthDate || '',
-    observations: member.observations || '', status: member.status || 'ACTIVE', planId: member.planId || '',
-    joinedAt: member.joinedAt || todayISO(), membershipEndsAt: member.membershipEndsAt || '',
-  })
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => { api.get(`/gyms/${gymId}/plans`).then(({ data }) => setPlans(data)) }, [gymId])
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
-
-  const submit = async (e) => {
-    e.preventDefault()
-    setBusy(true)
-    setError('')
-    const payload = {
-      ...form,
-      planId: form.planId ? Number(form.planId) : null,
-      birthDate: form.birthDate || null,
-      membershipEndsAt: form.membershipEndsAt || null,
-      joinedAt: form.joinedAt || null,
-    }
-    try {
-      if (member.id) await api.put(`/gyms/${gymId}/members/${member.id}`, payload)
-      else await api.post(`/gyms/${gymId}/members`, payload)
-      onSaved()
-    } catch (err) {
-      setError(errorMessage(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <Alert>{error}</Alert>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Nombres"><input className="input" required value={form.firstName} onChange={set('firstName')} /></Field>
-        <Field label="Apellidos"><input className="input" required value={form.lastName} onChange={set('lastName')} /></Field>
-        <Field label="Email"><input className="input" type="email" value={form.email} onChange={set('email')} /></Field>
-        <Field label="Teléfono"><input className="input" value={form.phone} onChange={set('phone')} /></Field>
-        <Field label="Cédula / pasaporte"><input className="input" value={form.documentId} onChange={set('documentId')} /></Field>
-        <Field label="Fecha de nacimiento"><input className="input" type="date" value={form.birthDate} onChange={set('birthDate')} /></Field>
-        <Field label="Plan">
-          <select className="input" value={form.planId} onChange={set('planId')}>
-            <option value="">— Ninguno —</option>
-            {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </Field>
-        <Field label="Estado">
-          <select className="input" value={form.status} onChange={set('status')}>
-            <option value="ACTIVE">Activo</option>
-            <option value="INACTIVE">Inactivo</option>
-          </select>
-        </Field>
-        <Field label="Fecha de inscripción"><input className="input" type="date" value={form.joinedAt} onChange={set('joinedAt')} /></Field>
-        <Field label="Vence la membresía" hint="Se actualiza sola al vender un plan.">
-          <input className="input" type="date" value={form.membershipEndsAt} onChange={set('membershipEndsAt')} />
-        </Field>
-      </div>
-      <Field label="Observaciones" hint="Lesiones, objetivos, notas médicas, preferencias…">
-        <textarea className="input" rows={4} value={form.observations} onChange={set('observations')} />
-      </Field>
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" loading={busy}>{member.id ? 'Guardar cambios' : 'Agregar socio'}</Button>
-      </div>
-    </form>
-  )
+  if (days < 0) return <Badge tone="red" dot>Venció {date(endsAt)}</Badge>
+  if (days <= 7) return <Badge tone="amber" dot>{days === 0 ? 'Vence hoy' : `Vence en ${days} ${days === 1 ? 'día' : 'días'}`}</Badge>
+  return <Badge tone="green" dot>Hasta {date(endsAt)}</Badge>
 }

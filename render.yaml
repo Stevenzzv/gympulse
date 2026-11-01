@@ -4,7 +4,7 @@ services:
   - type: web
     name: gympulse
     runtime: docker
-    plan: free           # for testing; it sleeps after 15 min idle. Switch to "starter" for real customers
+    plan: starter        # paid, always on. Use "free" only for testing (it sleeps after 15 min idle)
     healthCheckPath: /api/public/pricing
     envVars:
       - key: JWT_SECRET
@@ -19,6 +19,8 @@ services:
         sync: false      # https://your-domain (same origin, but keep it set)
       - key: ADMIN_EMAILS
         sync: false
+      - key: TRIAL_DAYS
+        value: "7"
       - key: PLAN_MONTHLY_PRICE
         value: "29.00"
       - key: PLAN_QUARTERLY_PRICE

@@ -158,9 +158,9 @@ class ApiIntegrationTest {
         JsonNode billing = call("GET", "/api/billing", owner, null, status().isOk());
         assertThat(billing.get("subscriptionStatus").asText()).isEqualTo("ACTIVE");
         assertThat(billing.get("hasPendingPayment").asBoolean()).isFalse();
-        // 14-day trial + 3 months
+        // 7-day trial + 3 months
         Instant endsAt = Instant.parse(billing.get("subscriptionEndsAt").asText());
-        assertThat(endsAt).isAfter(Instant.now().plus(java.time.Duration.ofDays(14 + 88)));
+        assertThat(endsAt).isAfter(Instant.now().plus(java.time.Duration.ofDays(7 + 88)));
     }
 
     @Test
@@ -180,6 +180,25 @@ class ApiIntegrationTest {
         JsonNode billing = call("GET", "/api/billing", owner, null, status().isOk());
         assertThat(billing.get("subscriptionStatus").asText()).isEqualTo("TRIAL");
         assertThat(billing.get("payments").get(0).get("adminNote").asText()).isEqualTo("No encontramos la transferencia");
+    }
+
+    @Test
+    void ownerCanChangePasswordOnlyWithTheCurrentOne() throws Exception {
+        String email = UUID.randomUUID() + "@test.com";
+        String token = registerAs(email, "Gym");
+        call("POST", "/api/auth/password", token,
+                java.util.Map.of("currentPassword", "wrong-pass", "newPassword", "nueva-clave-1"), status().isBadRequest());
+        call("POST", "/api/auth/password", token,
+                java.util.Map.of("currentPassword", "secret123", "newPassword", "nueva-clave-1"), status().isNoContent());
+        call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "secret123"), status().isUnauthorized());
+        call("POST", "/api/auth/login", null, java.util.Map.of("email", email, "password", "nueva-clave-1"), status().isOk());
+    }
+
+    @Test
+    void newAccountsGetASevenDayTrial() throws Exception {
+        JsonNode me = call("GET", "/api/auth/me", register("Trial Gym"), null, status().isOk());
+        Instant trialEnds = Instant.parse(me.get("trialEndsAt").asText());
+        assertThat(trialEnds).isBetween(Instant.now().plus(java.time.Duration.ofDays(6)), Instant.now().plus(java.time.Duration.ofDays(8)));
     }
 
     @Test

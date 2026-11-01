@@ -35,7 +35,7 @@ app:
   # Accounts with these emails get the ADMIN role (approve payments, manage customers).
   admin-emails: ${ADMIN_EMAILS:admin@gymsaas.app}
   subscription:
-    trial-days: ${TRIAL_DAYS:14}
+    trial-days: ${TRIAL_DAYS:7}
     currency: USD
     plans:
       - code: MONTHLY
